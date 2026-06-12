@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-services
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - service: api-service
+                - service: auth-service
+                - service: worker-service
+          - list:
+              elements:
+                - environment: dev
+                  autoSync: "true"
+                  prune: "true"
+                - environment: qa
+                  autoSync: "true"
+                  prune: "true"
+                - environment: staging
+                  autoSync: "true"
+                  prune: "true"
+                - environment: prod
+                  autoSync: "false"
+                  prune: "false"
+  template:
+    metadata:
+      name: "{{service}}-{{environment}}"
+      namespace: argocd
+      labels:
+        service: "{{service}}"
+        environment: "{{environment}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/your-org/argocd-helm-deployments.git
+        targetRevision: main
+        path: charts/microservice
+        helm:
+          valueFiles:
+            - "../../environments/{{service}}/values-{{environment}}.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{environment}}"
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

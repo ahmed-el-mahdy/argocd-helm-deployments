@@ -1,0 +1,36 @@
+# API Service — Dev Environment
+replicaCount: 1
+
+image:
+  repository: myplatformacr.azurecr.io/api-service
+  tag: "dev-latest"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+autoscaling:
+  enabled: false
+
+ingress:
+  enabled: false
+
+env:
+  ASPNETCORE_URLS: "http://+:8080"
+  ASPNETCORE_ENVIRONMENT: "Development"
+  LOG_LEVEL: "Debug"
+
+secretProvider:
+  enabled: true
+  provider: azure
+  keyvaultName: "myplatform-dev-kv"
+  tenantId: "00000000-0000-0000-0000-000000000000"
+  objects:
+    - name: ConnectionString
+      type: secret
+    - name: JwtSecret
+      type: secret

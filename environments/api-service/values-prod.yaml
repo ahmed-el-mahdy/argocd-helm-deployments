@@ -1,0 +1,58 @@
+# API Service — Production Environment
+replicaCount: 3
+
+image:
+  repository: myplatformacr.azurecr.io/api-service
+  tag: "prod-v1.2.0"
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - api.example.com
+      secretName: api-prod-tls
+
+env:
+  ASPNETCORE_URLS: "http://+:8080"
+  ASPNETCORE_ENVIRONMENT: "Production"
+  LOG_LEVEL: "Warning"
+
+secretProvider:
+  enabled: true
+  provider: azure
+  keyvaultName: "myplatform-prod-kv"
+  tenantId: "00000000-0000-0000-0000-000000000000"
+  objects:
+    - name: ConnectionString
+      type: secret
+    - name: JwtSecret
+      type: secret
+    - name: RedisConnection
+      type: secret
+    - name: ServiceBusConnection
+      type: secret

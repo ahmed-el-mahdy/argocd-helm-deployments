@@ -1,0 +1,12 @@
+apiVersion: v2
+name: microservice
+description: Generic Helm chart for platform microservices
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - microservice
+  - dotnet
+  - kubernetes
+  - aks
