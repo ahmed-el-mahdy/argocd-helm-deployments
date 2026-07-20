@@ -11,7 +11,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/argocd-helm-deployments.git
+    repoURL: https://github.com/ahmed-el-mahdy/argocd-helm-deployments.git
     targetRevision: main
     path: charts/microservice
     helm:

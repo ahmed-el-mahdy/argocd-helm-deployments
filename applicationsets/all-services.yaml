@@ -5,27 +5,12 @@ metadata:
   namespace: argocd
 spec:
   generators:
-    - matrix:
-        generators:
-          - list:
-              elements:
-                - service: api-service
-                - service: auth-service
-                - service: worker-service
-          - list:
-              elements:
-                - environment: dev
-                  autoSync: "true"
-                  prune: "true"
-                - environment: qa
-                  autoSync: "true"
-                  prune: "true"
-                - environment: staging
-                  autoSync: "true"
-                  prune: "true"
-                - environment: prod
-                  autoSync: "false"
-                  prune: "false"
+    - list:
+        elements:
+          - service: api-service
+            environment: dev
+          - service: api-service
+            environment: prod
   template:
     metadata:
       name: "{{service}}-{{environment}}"
@@ -36,7 +21,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/your-org/argocd-helm-deployments.git
+        repoURL: https://github.com/ahmed-el-mahdy/argocd-helm-deployments.git
         targetRevision: main
         path: charts/microservice
         helm:

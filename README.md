@@ -1,119 +1,87 @@
-# ArgoCD Helm Deployments
+# Argo CD and Helm Delivery Patterns
 
-GitOps-driven microservice deployments using Argo CD Applications and Helm charts. Demonstrates production patterns for managing multiple services across environments with automated sync.
+[![Argo CD](https://img.shields.io/badge/Argo_CD-GitOps-EF7B4D?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Delivery-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Live-14B8A6)](https://ahmed-el-mahdy.github.io/)
 
-![ArgoCD](https://img.shields.io/badge/Argo_CD-2.9+-EF7B4D?logo=argo)
-![Helm](https://img.shields.io/badge/Helm-3.14+-0F1689?logo=helm)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes)
-![License](https://img.shields.io/badge/License-MIT-green)
+A compact GitOps reference showing how one Helm chart can deliver an API service to development and production through Argo CD.
 
-## Architecture
+## What This Repository Demonstrates
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                         Git Repository                            │
-│  apps/          charts/           environments/                    │
-│  (ArgoCD Apps)  (Helm Charts)     (Values per env)                │
-└──────────┬──────────────────────────────────────────┬────────────┘
-           │ watches                                   │
-           ▼                                           ▼
-┌────────────────────┐                    ┌────────────────────────┐
-│    Argo CD Server  │ ──── syncs ────►   │   Kubernetes Cluster   │
-│    (GitOps)        │                    │   ├── dev namespace    │
-│                    │                    │   ├── qa namespace     │
-│  ApplicationSets   │                    │   ├── staging ns       │
-│  + Auto-Sync      │                    │   └── prod namespace   │
-└────────────────────┘                    └────────────────────────┘
-```
+- A reusable microservice chart for Deployments, Services, HPA, Ingress, and Azure Key Vault CSI resources.
+- Separate value files for development and production behavior.
+- Automated drift correction in development and manual promotion in production.
+- An app-of-apps bootstrap manifest for the checked-in service Applications.
+- An ApplicationSet example that generates the same two implemented service/environment combinations.
 
-## Directory Structure
+## Delivery Model
 
-```
-.
-├── apps/                              # Argo CD Application manifests
-│   ├── app-of-apps.yaml              # Root Application (App of Apps pattern)
-│   ├── api-service/
-│   │   ├── dev.yaml
-│   │   ├── qa.yaml
-│   │   ├── staging.yaml
-│   │   └── prod.yaml
-│   ├── auth-service/
-│   └── worker-service/
-├── charts/                            # Helm charts
-│   └── microservice/                  # Generic chart for all services
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-│           ├── deployment.yaml
-│           ├── service.yaml
-│           ├── hpa.yaml
-│           ├── ingress.yaml
-│           ├── secret-provider.yaml
-│           └── _helpers.tpl
-├── environments/                      # Per-service, per-env values
-│   ├── api-service/
-│   │   ├── values-dev.yaml
-│   │   ├── values-qa.yaml
-│   │   ├── values-staging.yaml
-│   │   └── values-prod.yaml
-│   ├── auth-service/
-│   └── worker-service/
-└── applicationsets/                   # ApplicationSet generators
-    └── all-services.yaml
+```mermaid
+flowchart LR
+    GIT[Git repository] --> ARGO[Argo CD]
+    CHART[Generic Helm chart] --> ARGO
+    DEV[Development values] --> ARGO
+    PROD[Production values] --> ARGO
+    ARGO --> DNS[dev namespace]
+    ARGO --> PNS[prod namespace]
 ```
 
-## Key Patterns
+Development enables automated prune and self-heal. Production deliberately leaves synchronization manual and uses higher replica, resource, HPA, TLS, and secret requirements.
 
-### 1. App of Apps
-A root Application manages all child Applications, enabling single-click cluster bootstrapping.
+## Implemented Scope
 
-### 2. Generic Helm Chart
-One chart serves all microservices — each service customizes via environment-specific values files.
+| Path | Purpose |
+| --- | --- |
+| `charts/microservice` | Generic Helm chart used by the service Applications |
+| `apps/api-service/dev.yaml` | Automated development Application |
+| `apps/api-service/prod.yaml` | Manual production Application |
+| `apps/app-of-apps.yaml` | Root Application that discovers the checked-in child Applications |
+| `environments/api-service` | Development and production value files |
+| `applicationsets/all-services.yaml` | List-generator alternative for the two implemented targets |
 
-### 3. ApplicationSet Generator
-Automatically creates ArgoCD Applications for new services/environments using a matrix generator.
+## Render Before Syncing
 
-### 4. Sync Waves
-Resources deploy in order: Namespace → Secrets → ConfigMaps → Deployments → Ingress.
-
-## Quick Start
+Rendering locally catches chart errors without touching a cluster:
 
 ```bash
-# 1. Install Argo CD
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+helm lint charts/microservice
+helm template api-service-dev charts/microservice \
+  --namespace dev \
+  -f environments/api-service/values-dev.yaml
 
-# 2. Apply the root App of Apps
+helm template api-service-prod charts/microservice \
+  --namespace prod \
+  -f environments/api-service/values-prod.yaml
+```
+
+## Bootstrap Argo CD
+
+Prerequisites: an existing Kubernetes cluster, Argo CD installed in the `argocd` namespace, and any required NGINX Ingress, cert-manager, and Secrets Store CSI components.
+
+```bash
 kubectl apply -f apps/app-of-apps.yaml
-
-# 3. Argo CD syncs everything automatically
 argocd app list
 ```
 
-## Deployment Flow
+Applying the root Application changes cluster state. Inspect the repository URL, namespaces, image repositories, tenant IDs, Key Vault names, ingress hosts, and TLS issuers first.
 
-1. Developer pushes code → CI builds Docker image → pushes to ACR
-2. CI updates `environments/{service}/values-{env}.yaml` with new image tag
-3. Argo CD detects drift in Git vs cluster
-4. Auto-sync applies the change (or manual sync for prod)
-5. Post-sync hook runs health checks
+## Promotion Flow
 
-## Environment Strategy
+1. CI publishes an immutable image tag.
+2. The target environment value file is updated in Git.
+3. Argo CD detects the desired-state change.
+4. Development reconciles automatically.
+5. Production waits for an explicit review and sync.
 
-| Environment | Sync Policy | Prune | Self-Heal | Approval |
-|-------------|-------------|-------|-----------|----------|
-| dev | Auto | Yes | Yes | None |
-| qa | Auto | Yes | Yes | None |
-| staging | Auto | Yes | Yes | None |
-| prod | Manual | No | No | Required |
+## Security and Operations Notes
 
-## Prerequisites
+- Replace placeholder tenant IDs, vault names, registry names, and hostnames.
+- Pin image tags to immutable versions or digests before production use.
+- Keep production sync manual or protect it with an approved promotion workflow.
+- Restrict Argo CD projects, destinations, and repository credentials using least privilege.
+- Add notifications, policy checks, and rollback runbooks for a complete operating model.
 
-- Argo CD >= 2.9
-- Helm >= 3.14
-- AKS cluster with NGINX Ingress + CSI Secrets Store
-- ACR with images available
+## Status
 
-## License
-
-MIT
+This repository is a focused GitOps pattern library. The committed examples cover one API service in development and production; additional services and environments should be added only with matching value files and validation.
