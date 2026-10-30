@@ -85,3 +85,12 @@ Applying the root Application changes cluster state. Inspect the repository URL,
 ## Status
 
 This repository is a focused GitOps pattern library. The committed examples cover one API service in development and production; additional services and environments should be added only with matching value files and validation.
+
+## Experience Connection
+
+This one-service, two-environment example demonstrates pull-based reconciliation and deliberate production promotion. It is distinct from a push-driven application workflow and is not evidence that an employer platform uses this Argo CD topology.
+
+- [Personal-project and employment bullets](https://github.com/ahmed-el-mahdy/Career-Advance/blob/main/progress/CV-BULLETS.md) keep those scopes separate.
+- [Interview guide](https://github.com/ahmed-el-mahdy/Career-Advance/blob/main/progress/INTERVIEW-PREP.md) covers GitOps versus CI deployment, immutable image selection and recovery boundaries.
+
+Experience material was reviewed on 30 October 2026. Review image, chart, secret and data compatibility before treating a Git revert or sync as a complete application rollback.
