@@ -23,8 +23,10 @@ flowchart LR
     CHART[Generic Helm chart] --> ARGO
     DEV[Development values] --> ARGO
     PROD[Production values] --> ARGO
-    ARGO --> DNS[dev namespace]
-    ARGO --> PNS[prod namespace]
+    ARGO --> AUTO[Automatic dev reconciliation]
+    AUTO --> DNS[dev namespace]
+    ARGO --> APPROVAL[Explicit production sync]
+    APPROVAL --> PNS[prod namespace]
 ```
 
 Development enables automated prune and self-heal. Production deliberately leaves synchronization manual and uses higher replica, resource, HPA, TLS, and secret requirements.
@@ -85,6 +87,12 @@ Applying the root Application changes cluster state. Inspect the repository URL,
 ## Status
 
 This repository is a focused GitOps pattern library. The committed examples cover one API service in development and production; additional services and environments should be added only with matching value files and validation.
+
+## Review Gates
+
+Source review: 30 October 2026. The app-of-apps and ApplicationSet are alternative ownership examples for the same implemented targets; review generated Application names and do not install overlapping owners blindly. Render both values sets, check references/namespace/identity/TLS assumptions, then validate against the intended Argo CD project and destinations.
+
+Dev self-heal/prune changes cluster resources; production sync is deliberate. A Git revert or sync is not a complete rollback if schema, data or external effects are incompatible. Notifications, policy gates and recovery tests remain separate production follow-ups.
 
 ## Experience Connection
 
